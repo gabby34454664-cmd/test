@@ -62,14 +62,35 @@
         .btn-copy { background: #4dabf7; color: white; padding: 5px 12px; font-size: 0.85em; }
         .status-message { margin-top: 10px; padding: 10px; border-radius: 5px; text-align: center; font-weight: 600; min-height: 20px; }
         .status-success { background: #d3f9d8; color: #2b8a3e; }
+        .status-error { background: #ffe0e0; color: #c92a2a; }
         .user-info { background: #f0f2f5; padding: 10px; border-radius: 5px; margin-top: 10px; font-size: 0.9em; }
         .user-info strong { color: #667eea; }
-        .content { background: white; border-radius: 10px; padding: 20px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3); }
+        .content { background: white; border-radius: 10px; padding: 20px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3); display: none; }
+        .content.active { display: block; }
+        .security-warning { background: #fff3bf; border-left: 4px solid #ffc107; padding: 15px; border-radius: 5px; margin-bottom: 20px; color: #664d03; }
+        .typing-bar {
+            background: #f8f9fa;
+            border: 2px solid #dee2e6;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+        .typing-bar label { font-weight: 600; display: block; margin-bottom: 10px; color: #333; }
+        .typing-bar textarea {
+            width: 100%;
+            min-height: 120px;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            font-family: 'Courier New', monospace;
+            font-size: 1em;
+            resize: vertical;
+        }
+        .typing-bar textarea:focus { outline: none; border-color: #667eea; box-shadow: 0 0 5px rgba(102, 126, 234, 0.4); }
+        .save-indicator { margin-top: 8px; font-size: 0.85em; color: #666; }
+        .save-indicator.saved { color: #51cf66; font-weight: 600; }
         .section { margin-bottom: 30px; }
         .section-title { font-size: 1.5em; color: #333; margin-bottom: 15px; border-bottom: 3px solid #667eea; padding-bottom: 10px; }
-        .tab-buttons { display: flex; gap: 8px; margin-bottom: 15px; flex-wrap: wrap; }
-        .tab-btn { padding: 8px 15px; background: #e9ecef; color: #333; border: 2px solid transparent; border-radius: 5px; cursor: pointer; font-weight: 500; }
-        .tab-btn.active { background: #667eea; color: white; }
         .templates-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 15px; }
         .template-card {
             background: #f8f9fa;
@@ -91,13 +112,6 @@
             font-size: 0.95em;
         }
         .template-actions { display: flex; gap: 8px; flex-wrap: wrap; }
-        .add-template-form { background: #f0f2f5; padding: 15px; border-radius: 8px; margin-top: 15px; }
-        .form-row { display: flex; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; }
-        .form-row input, .form-row textarea { flex: 1; min-width: 200px; padding: 10px; border: 2px solid #ddd; border-radius: 5px; font-family: inherit; }
-        .form-row textarea { resize: vertical; min-height: 80px; }
-        .search-box { margin-bottom: 15px; }
-        .search-box input { width: 100%; padding: 12px; border: 2px solid #ddd; border-radius: 5px; }
-        .security-warning { background: #fff3bf; border-left: 4px solid #ffc107; padding: 15px; border-radius: 5px; margin-bottom: 20px; color: #664d03; }
         footer { text-align: center; color: white; margin-top: 30px; opacity: 0.8; }
     </style>
 </head>
@@ -109,12 +123,13 @@
         </header>
 
         <div class="main-content">
+            <!-- Sidebar -->
             <div class="sidebar">
                 <h2>Account</h2>
-                <div class="login-form">
+                <div class="login-form" id="loginForm">
                     <div class="form-group">
                         <label for="username">Username</label>
-                        <input type="text" id="username" placeholder="Any name">
+                        <input type="text" id="username" placeholder="Choose a username">
                     </div>
                     <div class="form-group">
                         <label for="pin">4-Digit PIN</label>
@@ -126,37 +141,41 @@
                     </div>
                     <div class="status-message" id="statusMessage"></div>
                 </div>
+
                 <div class="user-info" id="userInfo" style="display: none;">
-                    <strong>Logged in as:</strong><br>
+                    <strong>✅ Logged in as:</strong><br>
                     <span id="currentUser"></span>
                     <button class="btn-danger" id="logoutBtn" style="width: 100%; margin-top: 10px;">Sign Out</button>
                 </div>
             </div>
 
-            <div class="content">
+            <!-- Main Content -->
+            <div class="content" id="mainContent">
                 <div class="security-warning">
                     ⚠️ <strong>Security Notice:</strong> This stores data locally in your browser. Not secure for sensitive information.
                 </div>
 
+                <!-- Typing Bar (Auto-saves) -->
+                <div class="typing-bar">
+                    <label for="typingArea">📝 Your Notes (Auto-saves):</label>
+                    <textarea id="typingArea" placeholder="Start typing... Everything you write will be automatically saved to your account."></textarea>
+                    <div class="save-indicator" id="saveIndicator">Ready to save...</div>
+                </div>
+
+                <!-- Templates Section -->
                 <div class="section">
                     <div class="section-title">Quick Templates</div>
-                    <div class="tab-buttons" id="tabButtons"></div>
-                    <div class="search-box">
-                        <input type="text" id="searchBox" placeholder="Search templates...">
-                    </div>
                     <div class="templates-grid" id="templatesContainer"></div>
                 </div>
 
+                <!-- Saved Items Section -->
                 <div class="section">
-                    <div class="section-title">Your Saved Items</div>
+                    <div class="section-title">Your Custom Items</div>
                     <div class="templates-grid" id="savedItemsContainer"></div>
-                    <div class="add-template-form">
-                        <div class="form-row">
-                            <input type="text" id="itemTitle" placeholder="Item title">
-                        </div>
-                        <div class="form-row">
-                            <textarea id="itemContent" placeholder="Item content"></textarea>
-                        </div>
+                    <div style="margin-top: 20px; background: #f0f2f5; padding: 15px; border-radius: 8px;">
+                        <h3 style="margin-bottom: 10px; color: #333;">Add New Item</h3>
+                        <input type="text" id="itemTitle" placeholder="Item title" style="width: 100%; padding: 10px; margin-bottom: 10px; border: 2px solid #ddd; border-radius: 5px;">
+                        <textarea id="itemContent" placeholder="Item content" style="width: 100%; min-height: 80px; padding: 10px; margin-bottom: 10px; border: 2px solid #ddd; border-radius: 5px; font-family: inherit;"></textarea>
                         <button class="btn-primary" id="addItemBtn" style="width: 100%;">Add Item</button>
                     </div>
                 </div>
@@ -164,93 +183,78 @@
         </div>
 
         <footer>
-            <p>© 2025 Advanced Moderation Board | Local Storage Only | Not Secure</p>
+            <p>© 2025 Advanced Moderation Board | Local Storage Only | Create Account to Start</p>
         </footer>
     </div>
 
     <script>
-        // Sample templates
+        // Default templates
         const defaultTemplates = [
             { title: "Warning", category: "warnings", content: "This is a warning for inappropriate behavior. Please follow community guidelines." },
-            { title: "Temp Ban", category: "bans", content: "You have been temporarily banned for 24 hours. Reason: Violation of community rules." },
+            { title: "Temp Ban 24h", category: "bans", content: "You have been temporarily banned for 24 hours. Reason: Violation of community rules." },
             { title: "Permanent Ban", category: "bans", content: "You have been permanently banned from this community." },
             { title: "Welcome Message", category: "info", content: "Welcome to our community! Please read the rules before posting." },
-            { title: "Rules", category: "info", content: "1. No spam\n2. Be respectful\n3. No hate speech\n4. Follow guidelines" }
+            { title: "Community Rules", category: "info", content: "1. No spam\n2. Be respectful\n3. No hate speech\n4. Follow guidelines\n5. Report violations" }
         ];
 
         let currentUser = null;
         let users = JSON.parse(localStorage.getItem('users')) || {};
-        let templates = JSON.parse(localStorage.getItem('templates')) || defaultTemplates;
+        let autoSaveTimeout;
 
-        // Update UI
-        function updateUI() {
-            if (currentUser) {
-                document.querySelector('.login-form').style.display = 'none';
-                document.getElementById('userInfo').style.display = 'block';
-                document.getElementById('currentUser').textContent = currentUser;
-                document.querySelector('.section').style.display = 'block';
-            } else {
-                document.querySelector('.login-form').style.display = 'flex';
-                document.getElementById('userInfo').style.display = 'none';
-            }
+        // Initialize
+        function init() {
+            document.getElementById('signInBtn').addEventListener('click', signIn);
+            document.getElementById('createBtn').addEventListener('click', createAccount);
+            document.getElementById('logoutBtn').addEventListener('click', logout);
+            document.getElementById('addItemBtn').addEventListener('click', addItem);
+            document.getElementById('typingArea').addEventListener('input', autoSaveTyping);
             renderTemplates();
-            renderSavedItems();
         }
 
-        // Render templates
-        function renderTemplates() {
-            const container = document.getElementById('templatesContainer');
-            container.innerHTML = templates.map(t => `
-                <div class="template-card">
-                    <div class="template-title">${t.title}</div>
-                    <div class="template-content">${t.content}</div>
-                    <div class="template-actions">
-                        <button class="btn-copy" onclick="copyText('${t.content.replace(/'/g, "\\'")}')">Copy</button>
-                    </div>
-                </div>
-            `).join('');
-        }
+        // Sign In
+        function signIn() {
+            const username = document.getElementById('username').value.trim();
+            const pin = document.getElementById('pin').value.trim();
+            const statusEl = document.getElementById('statusMessage');
 
-        // Copy to clipboard
-        function copyText(text) {
-            navigator.clipboard.writeText(text);
-            alert('Copied to clipboard!');
-        }
-
-        // Sign in
-        document.getElementById('signInBtn').addEventListener('click', () => {
-            const username = document.getElementById('username').value;
-            const pin = document.getElementById('pin').value;
-            
-            if (!username || pin.length !== 4) {
-                document.getElementById('statusMessage').textContent = 'Invalid username or PIN';
-                document.getElementById('statusMessage').className = 'status-message status-error';
+            if (!username || !pin) {
+                showError('Please enter both username and PIN');
                 return;
             }
 
-            if (users[username] && users[username] === pin) {
-                currentUser = username;
-                updateUI();
-                document.getElementById('statusMessage').textContent = 'Signed in successfully';
-                document.getElementById('statusMessage').className = 'status-message status-success';
-            } else {
-                document.getElementById('statusMessage').textContent = 'Invalid credentials';
-                document.getElementById('statusMessage').className = 'status-message status-error';
+            if (!users[username]) {
+                showError('❌ We detected you haven\'t created an account yet. Please click "Create Account" to get started!');
+                return;
             }
-        });
 
-        // Create account
-        document.getElementById('createBtn').addEventListener('click', () => {
-            const username = document.getElementById('username').value;
-            const pin = document.getElementById('pin').value;
-            
-            if (!username || pin.length !== 4) {
-                document.getElementById('statusMessage').textContent = 'Invalid username or PIN';
+            if (users[username] !== pin) {
+                showError('❌ Incorrect PIN. Please try again.');
+                return;
+            }
+
+            currentUser = username;
+            updateUI();
+            showSuccess('✅ Signed in successfully!');
+        }
+
+        // Create Account
+        function createAccount() {
+            const username = document.getElementById('username').value.trim();
+            const pin = document.getElementById('pin').value.trim();
+            const statusEl = document.getElementById('statusMessage');
+
+            if (!username) {
+                showError('Please enter a username');
+                return;
+            }
+
+            if (pin.length !== 4 || !/^\d+$/.test(pin)) {
+                showError('PIN must be exactly 4 digits');
                 return;
             }
 
             if (users[username]) {
-                document.getElementById('statusMessage').textContent = 'Username already exists';
+                showError('❌ Username already exists! Please choose another or Sign In.');
                 return;
             }
 
@@ -258,39 +262,33 @@
             localStorage.setItem('users', JSON.stringify(users));
             currentUser = username;
             updateUI();
-            document.getElementById('statusMessage').textContent = 'Account created successfully';
-            document.getElementById('statusMessage').className = 'status-message status-success';
-        });
+            showSuccess('✅ Account created successfully! Welcome ' + username + '!');
+        }
 
         // Logout
-        document.getElementById('logoutBtn').addEventListener('click', () => {
+        function logout() {
             currentUser = null;
             document.getElementById('username').value = '';
             document.getElementById('pin').value = '';
+            document.getElementById('typingArea').value = '';
             updateUI();
-        });
+        }
+
+        // Auto-save typing
+        function autoSaveTyping() {
+            if (!currentUser) return;
+
+            const indicator = document.getElementById('saveIndicator');
+            indicator.textContent = 'Saving...';
+            indicator.classList.remove('saved');
+
+            clearTimeout(autoSaveTimeout);
+            autoSaveTimeout = setTimeout(() => {
+                const content = document.getElementById('typingArea').value;
+                localStorage.setItem(`notes_${currentUser}`, content);
+                indicator.textContent = '💾 Saved!';
+                indicator.classList.add('saved');
+            }, 500);
+        }
 
         // Add custom item
-        document.getElementById('addItemBtn').addEventListener('click', () => {
-            const title = document.getElementById('itemTitle').value;
-            const content = document.getElementById('itemContent').value;
-            
-            if (!title || !content) return;
-
-            if (!currentUser) {
-                alert('Please sign in first');
-                return;
-            }
-
-            const userItems = JSON.parse(localStorage.getItem(`items_${currentUser}`)) || [];
-            userItems.push({ title, content });
-            localStorage.setItem(`items_${currentUser}`, JSON.stringify(userItems));
-            
-            document.getElementById('itemTitle').value = '';
-            document.getElementById('itemContent').value = '';
-            renderSavedItems();
-        });
-
-        // Render saved items
-        function renderSavedItems() {
-            const container = document.getElementById('savedItemsContainer');
